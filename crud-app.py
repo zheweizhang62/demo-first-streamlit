@@ -85,18 +85,42 @@ if data:
     # ==========================================
     # 5. 修改資料 (Update)
     # ==========================================
-    with st.form("update_data_form"):
-            # 使用 .get("姓名", "") 防呆，如果找不到該欄位，預設給空字串
+    with col_update:
+        st.header("3️⃣ 修改資料")
+
+        # 讓使用者選擇要修改哪一筆
+        selected_option_update = st.selectbox("選擇要修改的資料", options=list(row_options.keys()), key="update_select")
+        selected_row_update = row_options[selected_option_update]
+
+        # 抓出該列目前的數值，用來預設填入修改表單
+        # ⚠️ 注意：這行非常重要，負責定義 current_data，絕對不能漏掉！
+        current_data = data[selected_row_update - 2]
+
+        with st.form("update_data_form"):
+            # 加上防呆機制：使用 .get() 避免 Google Sheet 欄位名稱錯誤或有空格時網頁當機
             new_name = st.text_input("新姓名", value=current_data.get("姓名", ""))
             
-            # 使用 .get("數量", 0) 防呆，如果找不到該欄位，預設給 0
-            # 另外加上 str() 再轉 int() 避免抓到空字串時 int() 會報錯
+            # 處理「數量」可能讀不到或裡面是不小心填成空字串的狀況
             default_qty = current_data.get("數量", 0)
-            if default_qty == "":  # 處理試算表該格為空的情況
+            if default_qty == "": 
                 default_qty = 0
                 
             new_qty = st.number_input("新數量", min_value=0, value=int(default_qty))
+            
+            # 表單送出按鈕
             update_submitted = st.form_submit_button("更新資料")
+
+            # 處理按下按鈕後的動作
+            if update_submitted:
+                if new_name.strip() == "":
+                    st.warning("請填寫姓名！")
+                else:
+                    with st.spinner("正在更新資料中..."):
+                        # 分別更新 A 欄(第一欄) 與 B 欄(第二欄)
+                        worksheet.update_cell(selected_row_update, 1, new_name)
+                        worksheet.update_cell(selected_row_update, 2, new_qty)
+                    st.success("資料已成功更新！")
+                    st.rerun()
 
     # ==========================================
     # 6. 刪除資料 (Delete)
